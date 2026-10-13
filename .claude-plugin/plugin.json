@@ -1,0 +1,38 @@
+{
+  "name": "code-control",
+  "version": "0.1.0",
+  "description": "A source control pane for Claude Code: changes, branches, stash, history and conflicts of every git repository in the session.",
+  "author": { "name": "Rodrigo Picolo" },
+  "homepage": "https://github.com/elpicollon/code-control",
+  "repository": "https://github.com/elpicollon/code-control",
+  "license": "MIT",
+  "keywords": ["git", "source-control", "pane"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "fetchIntervalMinutes": {
+      "type": "number",
+      "title": "Fetch interval (minutes)",
+      "description": "Minutes between automatic fetches (at least 1): all session long while the row above the prompt shows, otherwise while the pane is open. 0 turns off all automatic fetching, the fetch when the pane opens included.",
+      "default": 5
+    },
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "Pane language: auto, en or pt-BR.",
+      "default": "auto",
+      "options": ["auto", "en", "pt-BR"]
+    },
+    "showStatusRow": {
+      "type": "boolean",
+      "title": "Row above the prompt",
+      "description": "Show the selected repository, its branch and its state in a row above the prompt; pressing it opens the pane. Off, the repositories are read only while the pane is open.",
+      "default": true
+    },
+    "commitMessageModel": {
+      "type": "string",
+      "title": "Commit message model",
+      "description": "Model alias or id the ✦ button uses.",
+      "default": "sonnet"
+    }
+  }
+}

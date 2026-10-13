@@ -1,0 +1,16 @@
+{
+  "name": "code-control",
+  "owner": {
+    "name": "Rodrigo Picolo"
+  },
+  "metadata": {
+    "description": "A source control pane for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "code-control",
+      "source": "./",
+      "description": "A source control pane for Claude Code."
+    }
+  ]
+}
