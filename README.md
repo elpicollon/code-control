@@ -53,13 +53,24 @@ Claude edits your files; code-control shows you, live, what that means for git. 
 
 ## Install
 
-In a Claude Code session:
+From a terminal:
+
+```bash
+claude plugin install code-control --marketplace elpicollon/code-control
+```
+
+This adds the marketplace and installs the plugin for your user, so it loads in every project, in the terminal and in the desktop app's Code tab. Start a new session afterwards.
+
+Already in a Claude Code terminal session? The same in two steps:
 
 ```
-/plugin install code-control --marketplace elpicollon/code-control
+/plugin marketplace add elpicollon/code-control
+/plugin install code-control@code-control
 ```
 
-Answer `y` to add the marketplace and choose the **user** scope, so the pane is there in every project, in the terminal and in the desktop app's Code tab.
+> In the desktop app, `/plugin` opens the app's own plugin catalog, which doesn't list code-control. Install from a terminal as above; the Code tab picks it up.
+
+To update later, run `claude plugin update code-control@code-control`; to remove it, `claude plugin uninstall code-control@code-control`.
 
 **Requirements**
 

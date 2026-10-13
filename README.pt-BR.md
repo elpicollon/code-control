@@ -53,13 +53,24 @@ O Claude edita seus arquivos; o code-control mostra, ao vivo, o que isso signifi
 
 ## Instalar
 
-Numa sessão do Claude Code:
+Num terminal:
+
+```bash
+claude plugin install code-control --marketplace elpicollon/code-control
+```
+
+Isso adiciona o marketplace e instala o plugin para o seu usuário, então ele carrega em todo projeto, no terminal e no Code tab do app desktop. Depois, abra uma sessão nova.
+
+Já está numa sessão do Claude Code no terminal? O mesmo em dois passos:
 
 ```
-/plugin install code-control --marketplace elpicollon/code-control
+/plugin marketplace add elpicollon/code-control
+/plugin install code-control@code-control
 ```
 
-Responda `y` para adicionar o marketplace e escolha o escopo de **usuário**, para o painel estar em todo projeto, no terminal e no Code tab do app desktop.
+> No app desktop, o `/plugin` abre o catálogo de plugins do próprio app, que não lista o code-control. Instale pelo terminal como acima; o Code tab carrega o plugin.
+
+Para atualizar depois, rode `claude plugin update code-control@code-control`; para remover, `claude plugin uninstall code-control@code-control`.
 
 **Requisitos**
 
