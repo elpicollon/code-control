@@ -14,7 +14,7 @@ import { closeHeavy, focusedRepo, PaneView, ROW_SETTING, SETTINGS, toggleOnTake 
 const PANE = 'code-control'
 // The width the pane asks for when it opens docked beside the conversation; a width the person drags it
 // to wins.
-const PANE_COLUMNS = 60
+const PANE_COLUMNS = 120
 const STATUS_EVERY_MS = 30_000
 const WRITERS = new Set(['Edit', 'Write', 'NotebookEdit', 'Bash'])
 // The row above the prompt, unless the person turned it off: as the settings hold it now, since the

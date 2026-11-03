@@ -1048,13 +1048,13 @@ test('a repository with 13 files, 2 staged and 1 conflict draws on every surface
 
 const BAND = { component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 8, bodyColumns: 80, scroll: { offset: 0, bodyRows: 7 }, view: {} } } as const
 
-test('the pane asks for 60 columns whether /code-control or the row above the prompt opens it', async ($, on) => {
+test('the pane asks for 120 columns whether /code-control or the row above the prompt opens it', async ($, on) => {
   const { widths } = world(on)
   await open($)
   const band = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...BAND })
   await band.press({ key: 'band|open' })
   await band.unmount()
-  expect(widths).toEqual([60, 60])
+  expect(widths).toEqual([120, 120])
 })
 
 // The session starting, and beneath the plugin what the engine draws in the band when no hook does.
