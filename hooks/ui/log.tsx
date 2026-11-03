@@ -6,21 +6,21 @@ import { ago } from '../i18n'
 import { basename, dirname } from '../paths'
 import { DiffBlock } from './diff'
 import { ROW, STEP, rowSvg, rowText } from './graph'
-import { type Actions, type Kit, type PaneModel } from './kit'
+import { across, type Actions, type Kit, type PaneModel } from './kit'
 import { GRAY, graphIcon, incomingIcon } from './icons'
-import { Icon, Pill, ROW_HOVER, SectionHead } from './marks'
+import { Icon, Pill, ROW_HOVER, SectionHead, TextAct } from './marks'
 
 // One line a file: the status, the name to press for its diff, the folder dim and cut at its start.
 const FileList = (kit: Kit, model: PaneModel, actions: Actions, scope: 'in' | 'hist', repo: string, hash: string, files: readonly CommitFile[]) => {
   const { Box, Text, Button } = kit
   return (
-    <Box flexDirection="column" marginLeft={2}>
+    <Box flexDirection="column" marginLeft={across(kit, 2)}>
       {files.map(f => {
         const key = `cfile|${repo}|${hash}|${f.path}`
         const content = model.details.diffs[key]
         return (
           <Box key={`${scope}:cfilerow|${repo}|${hash}|${f.path}`} flexDirection="column">
-            <Box flexDirection="row" gap={1}>
+            <Box flexDirection="row" gap={across(kit, 1)}>
               <Text dimColor>{f.status}</Text>
               <Button key={`${scope}:${key}`} plain label={basename(f.path)} onPress={() => void actions.toggleCommitFile(repo, hash, f.path)} />
               <Text dimColor wrap="truncate-start">
@@ -36,11 +36,27 @@ const FileList = (kit: Kit, model: PaneModel, actions: Actions, scope: 'in' | 'h
 }
 
 // A commit's short hash, as a link to its page on the remote repository's site where the remote has one
-// (Azure DevOps, GitHub, GitLab, Bitbucket and the like), dim text otherwise.
+// (Azure DevOps, GitHub, GitLab, Bitbucket and the like), dim text otherwise; in the monospaced face
+// where the engine takes it.
 const CommitLink = (kit: Kit, s: RepoSnapshot, hash: string, short: string) => {
   const { Box, Text, Link } = kit
+  if (!kit.isRich) {
+    return (
+      <Box flexShrink={0}>{s.webUrl === null ? <Text dimColor>{short}</Text> : <Link href={commitUrlOf(s.webUrl, hash)} label={short} />}</Box>
+    )
+  }
   return (
-    <Box flexShrink={0}>{s.webUrl === null ? <Text dimColor>{short}</Text> : <Link href={commitUrlOf(s.webUrl, hash)} label={short} />}</Box>
+    <Box flexShrink={0}>
+      {s.webUrl === null ? (
+        <Text dimColor mono>
+          {short}
+        </Text>
+      ) : (
+        <Link href={commitUrlOf(s.webUrl, hash)}>
+          <Text mono>{short}</Text>
+        </Link>
+      )}
+    </Box>
   )
 }
 
@@ -61,7 +77,7 @@ const HISTORY_SHOWN = 20
 // (pressed for the files), the subject cut at its end and the short date; no author.
 export const IncomingView = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapshot) => {
   if (s.branch.behind === 0) return null
-  const { Box, Text, Button } = kit
+  const { Box, Text } = kit
   const { t } = model
   const repo = s.repo.path
   const sectionKey = `section|${repo}|incoming`
@@ -78,13 +94,13 @@ export const IncomingView = (kit: Kit, model: PaneModel, actions: Actions, s: Re
         columns: model.columns,
       })}
       {isOpen ? (
-        <Box flexDirection="column" paddingLeft={2}>
+        <Box flexDirection="column" paddingLeft={across(kit, 2)}>
           {shown.map(c => {
             const key = `in|${repo}|${c.hash}`
             const filesOpen = model.ui.open[key] === true
             return (
               <Box key={`inrow|${key}`} flexDirection="column">
-                <Box key={`inline|${key}`} flexDirection="row" alignItems="center" gap={1} hover={{ backgroundColor: ROW_HOVER }}>
+                <Box key={`inline|${key}`} flexDirection="row" alignItems="center" gap={across(kit, 1)} hover={{ backgroundColor: ROW_HOVER }}>
                   {CommitLink(kit, s, c.hash, c.short)}
                   {Subject(kit, key, c.subject, () => void actions.toggle(key, filesOpen))}
                   <Box flexGrow={1} />
@@ -96,7 +112,7 @@ export const IncomingView = (kit: Kit, model: PaneModel, actions: Actions, s: Re
               </Box>
             )
           })}
-          {loaded > INCOMING_SHOWN ? <Button key={moreKey} plain label={t('moreCommits', { n: loaded - INCOMING_SHOWN })} onPress={() => void actions.toggle(moreKey, expanded)} /> : null}
+          {loaded > INCOMING_SHOWN ? TextAct(kit, moreKey, t('moreCommits', { n: loaded - INCOMING_SHOWN }), () => void actions.toggle(moreKey, expanded)) : null}
           {expanded && s.branch.behind > loaded ? <Text dimColor>{t('showingOf', { shown: loaded, total: s.branch.behind })}</Text> : null}
         </Box>
       ) : null}
@@ -108,7 +124,7 @@ export const IncomingView = (kit: Kit, model: PaneModel, actions: Actions, s: Re
 // short hash (pressed for the files), the refs and subject cut at their end, the short date.
 export const HistoryView = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapshot) => {
   if (s.branch.oid === null) return null
-  const { Box, Text, Button, Svg } = kit
+  const { Box, Text, Svg } = kit
   const { t } = model
   const repo = s.repo.path
   const key = `history|${repo}`
@@ -124,7 +140,7 @@ export const HistoryView = (kit: Kit, model: PaneModel, actions: Actions, s: Rep
     <Box key={`histblock|${repo}`} flexDirection="column">
       {SectionHead(kit, t, key, t('historySection'), isOpen, () => void actions.toggleHistory(repo), { icon: Icon(kit, graphIcon, t('historySection'), 16), columns: model.columns })}
       {isOpen ? (
-        <Box flexDirection="column" paddingLeft={2}>
+        <Box flexDirection="column" paddingLeft={across(kit, 2)}>
           {shownRows.map((row, i) => {
             const c = commits[i]
             if (c === undefined) return null
@@ -132,7 +148,7 @@ export const HistoryView = (kit: Kit, model: PaneModel, actions: Actions, s: Rep
             const files = model.ui.open[filesKey] === true ? model.details.commitFiles[filesKey] : undefined
             return (
               <Box key={`hist|${filesKey}`} flexDirection="column">
-                <Box key={`histline|${filesKey}`} flexDirection="row" alignItems="center" gap={1} hover={{ backgroundColor: ROW_HOVER }}>
+                <Box key={`histline|${filesKey}`} flexDirection="row" alignItems="center" gap={across(kit, 1)} hover={{ backgroundColor: ROW_HOVER }}>
                   {Svg === undefined ? <Text color="subtle">{rowText(row)}</Text> : <Svg source={rowSvg(row)} alt={c.short} width={row.width * STEP} height={ROW} />}
                   {CommitLink(kit, s, c.hash, c.short)}
                   {c.refs.length > 0 ? (
@@ -151,9 +167,9 @@ export const HistoryView = (kit: Kit, model: PaneModel, actions: Actions, s: Rep
             )
           })}
           {shownRows.length < rows.length ? (
-            <Button key={moreKey} plain label={t('moreCommits', { n: rows.length - shownRows.length })} onPress={() => void actions.toggle(moreKey, expanded)} />
+            TextAct(kit, moreKey, t('moreCommits', { n: rows.length - shownRows.length }), () => void actions.toggle(moreKey, expanded))
           ) : commits.length > 0 && commits.length % PAGE === 0 ? (
-            <Button key={`loadmore|${repo}`} plain label={t('loadMore')} onPress={() => void actions.loadMore(repo)} />
+            TextAct(kit, `loadmore|${repo}`, t('loadMore'), () => void actions.loadMore(repo))
           ) : null}
         </Box>
       ) : null}

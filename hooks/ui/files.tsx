@@ -4,8 +4,8 @@ import { basename, dirname } from '../paths'
 import { ConflictRow } from './conflict'
 import { DiffBlock } from './diff'
 import { C, GRAY } from './icons'
-import { canAct, confirming, HOVER_ONLY, hoverOnly, type Actions, type Kit, type PaneModel } from './kit'
-import { Act, FileIcon, Pill, ROW_HOVER, SectionHead, Tip } from './marks'
+import { across, canAct, confirming, HOVER_ONLY, hoverOnly, type Actions, type Kit, type PaneModel } from './kit'
+import { Act, FileIcon, Pill, ROW_HOVER, SectionHead, TextAct, Tip } from './marks'
 
 export const SHOWN = 50
 
@@ -50,7 +50,7 @@ export const FileRow = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSna
   // at its start, the actions under the pointer, the status letter.
   return (
     <Box key={`row|${id}`} flexDirection="column">
-      <Box key={`line|${id}`} flexDirection="row" alignItems="center" gap={1} paddingLeft={2} paddingRight={1} hover={{ backgroundColor: ROW_HOVER }}>
+      <Box key={`line|${id}`} flexDirection="row" alignItems="center" gap={across(kit, 1)} paddingLeft={across(kit, 2)} paddingRight={across(kit, 1)} hover={{ backgroundColor: ROW_HOVER }}>
         {FileIcon(kit, t, f.path)}
         <Box flexShrink={0}>
           <Button key={`diff|${id}`} plain {...(f.status === 'D' ? { dimColor: true } : {})} label={name} onPress={() => void actions.toggleDiff(repo, f)} />
@@ -60,7 +60,7 @@ export const FileRow = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSna
             {dirname(f.path)}
           </Text>
         </Box>
-        <Box flexDirection="row" gap={1} {...(hoverOnly(kit) && !isConfirming ? HOVER_ONLY : {})}>
+        <Box flexDirection="row" gap={across(kit, 1)} {...(hoverOnly(kit) && !isConfirming ? HOVER_ONLY : {})}>
           {writable && f.status !== 'D' ? Act(kit, `open|${id}`, '↗', t('tipOpen'), () => void actions.openFile(repo, f.path)) : null}
           {isConfirming ? <Text color="error">{t('confirm')}</Text> : null}
           {writable && f.group === 'changes' ? Act(kit, discardKey, '↶', t('tipDiscard'), () => void actions.discard(repo, f)) : null}
@@ -77,7 +77,7 @@ export const FileRow = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSna
 export const GroupView = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapshot, group: FileGroup) => {
   const files = s.files.filter(f => f.group === group)
   if (files.length === 0) return null
-  const { Box, Text, Button } = kit
+  const { Box, Text } = kit
   const { t } = model
   const repo = s.repo.path
   const moreKey = `more|${repo}|${group}`
@@ -101,8 +101,8 @@ export const GroupView = (kit: Kit, model: PaneModel, actions: Actions, s: RepoS
       })}
       {isOpen ? shown.map(f => (group === 'conflicts' ? ConflictRow(kit, model, actions, s, f) : FileRow(kit, model, actions, s, f))) : null}
       {isOpen && shown.length < files.length ? (
-        <Box key={`morerow|${repo}|${group}`} paddingLeft={2} hover={{ backgroundColor: ROW_HOVER }}>
-          <Button key={moreKey} plain dimColor label={t('moreFiles', { n: files.length - shown.length })} onPress={() => void actions.toggle(moreKey, false)} />
+        <Box key={`morerow|${repo}|${group}`} paddingLeft={across(kit, 2)} hover={{ backgroundColor: ROW_HOVER }}>
+          {TextAct(kit, moreKey, t('moreFiles', { n: files.length - shown.length }), () => void actions.toggle(moreKey, false))}
         </Box>
       ) : null}
     </Box>

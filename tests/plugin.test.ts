@@ -1,6 +1,7 @@
-import { test, expect, mock } from 'claude-code/testing'
+import { test, expect, mock, type TestBody } from 'claude-code/testing'
 import type { On } from 'claude-code'
 import { BASE_ARGS } from '../hooks/git/run'
+import { takesRichProps } from '../hooks/ui/kit'
 import { closeHeavy, focusedRepo, toggleOnTake } from '../hooks/ui/pane'
 import { isBlank, leaves, nodes, result, shown, type Node } from './helpers'
 
@@ -42,6 +43,8 @@ const world = (on: On, options: World = {}) => {
   const calls: string[] = []
   // every process call with the folder it ran in, for tests that tell repositories apart
   const runs: { cwd: string; line: string }[] = []
+  // the width each open of the pane asked for
+  const widths: (number | undefined)[] = []
   const clock = mock.clock(on, { now: 1_800_000_000_000 })
   mock.env(on, options.env ?? { LANG: 'en_US.UTF-8' })
   on('session.cwd', () => ({ value: '/w' }))
@@ -50,6 +53,7 @@ const world = (on: On, options: World = {}) => {
   on('command.register', () => ({ value: { command: 'code-control' } }))
   on('ui.open', ($, e) => {
     calls.push(`open ${e.id}`)
+    widths.push(e.columns)
     return { value: { isPlaced: true } }
   })
   on('ui.panes', () => ({ value: [] }))
@@ -90,7 +94,7 @@ const world = (on: On, options: World = {}) => {
     if (line === 'remote') return { value: result({ stdout: 'origin\n' }) }
     return { value: result() }
   })
-  return { calls, runs, clock }
+  return { calls, runs, clock, widths }
 }
 
 const open = ($: { command: { run: (input: never) => Promise<{ text?: string }> } }) => $.command.run({ command: 'code-control', args: '' } as never)
@@ -180,6 +184,23 @@ test('conflict banner and resolve with Claude', async ($, on) => {
   expect(await ui.find({ key: 'conclude|/w/app' })).toBeUndefined()
   await ui.press({ key: 'claude|/w/app|conflicts|src/app.ts' })
   expect(calls.some(c => c.startsWith('prompt Resolve the merge conflicts in `src/app.ts`'))).toBe(true)
+  await ui.unmount()
+})
+
+test('the actions named in words are buttons with their outline; from 2.1.309 a conflict row has space under them', async ($, on) => {
+  const files = [...Array.from({ length: 53 }, (_, i) => changed(`f${String(i).padStart(2, '0')}.ts`)), unmerged('src/app.ts')]
+  world(on, { status: status({ files }), gitDir: ['MERGE_HEAD'] })
+  engine(on, '2.1.309')
+  await open($)
+  const ui = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...PANE })
+  const conflict = ['view', 'mine', 'theirs', 'open', 'resolved', 'claude'].map(action => `${action}|/w/app|conflicts|src/app.ts`)
+  for (const key of [...conflict, 'more|/w/app|changes']) {
+    const button = await ui.find({ key })
+    expect(button?.type).toBe('Button')
+    expect(button?.props.plain).toBeUndefined()
+  }
+  // space under a conflict's actions, before the next row
+  expect((await ui.find({ key: 'row|/w/app|conflicts|src/app.ts' }))?.props.marginBottom).toBe('md')
   await ui.unmount()
 })
 
@@ -621,6 +642,75 @@ test('a message longer than the field shows whole under it, where a pointer surf
   }
 })
 
+const engine = (on: On, version: string) => on('session.version', () => ({ value: { version } }))
+
+test('the props of 2.1.309 are for that engine and later', () => {
+  for (const version of ['2.1.309', '2.1.310-dev', '2.2.0', '3.0.0']) expect(takesRichProps(version)).toBe(true)
+  for (const version of ['2.1.308', '2.1.295', '2.0.999', '1.9.999']) expect(takesRichProps(version)).toBe(false)
+})
+
+test('from 2.1.309 the message field stands three lines across the pane, its buttons under it, holds a body, and nothing repeats it', async ($, on) => {
+  const { calls } = world(on)
+  engine(on, '2.1.309')
+  await open($)
+  const ui = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...PANE })
+  expect((await ui.find({ key: 'msg|/w/app' }))?.props.rows).toBe(3)
+  // the field alone in a column, then ✦, Commit and ⋯ on the row under it
+  const keyOf = (c: unknown) => (c as { props?: { key?: string } }).props?.key
+  const column = nodes(await ui.drawn()).find(n => n.children.some(c => keyOf(c) === 'msg|/w/app'))
+  expect(column?.props.flexDirection).toBe('column')
+  expect(column?.children.map(keyOf)).toEqual(['msg|/w/app', undefined])
+  const under = nodes(column?.children[1]).map(n => n.props.key)
+  for (const key of ['gen|/w/app', 'commit|/w/app', 'moreactions|/w/app']) expect(under).toContain(key)
+  // on their own row, ✦ and ⋯ say what they are in words
+  expect((await ui.find({ key: 'gen|/w/app' }))?.props.label).toBe('✦ Generate')
+  const menu = (await ui.find({ key: 'moreactions|/w/app' }))?.props
+  expect((menu?.options as { value: string; label: string }[] | undefined)?.find(o => o.value === menu?.value)?.label).toBe('More actions')
+  const message = 'feat: show the whole commit message\n\nThe field holds the body too.'
+  await ui.input({ key: 'msg|/w/app', text: message, kind: 'change' })
+  expect(await ui.find({ key: 'msgwhole|/w/app' })).toBeUndefined()
+  await ui.press({ key: 'commit|/w/app' })
+  expect(calls).toContain(`commit -m ${message}`)
+  await ui.unmount()
+})
+
+test('from 2.1.309 the pane spaces in the surface steps and draws on every surface', async ($, on) => {
+  const states: Record<string, string> = { '/w/app': status({ ahead: 1, behind: 2, files: [staged('a'), changed('b'), unmerged('c')] }), '/w/other': status({ upstream: false }) }
+  world(on, { repos: ['app', 'other'], status: cwd => states[cwd] ?? status(), gitDir: ['MERGE_HEAD'] })
+  engine(on, '2.1.309')
+  await open($)
+  const desktop = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...PANE })
+  for (const key of ['section|/w/app|incoming', 'history|/w/app', 'commit|/w/app']) await desktop.press({ key })
+  await desktop.unmount()
+  for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
+    const ui = await $.ui.mount({ plugin: 'code-control', surface, ...PANE })
+    expect(await ui.drawn()).toMatchObject({ type: 'Box' })
+    const row = (await ui.find({ key: 'reporow|/w/other' }))?.props
+    const detail = (await ui.find({ key: 'detail' }))?.props
+    // VS Code lays the steps out as the cells they stand for, the ones written before
+    if (surface === 'vscode') {
+      expect(row).toMatchObject({ columnGap: 1, rowGap: 0, paddingLeft: 2, paddingRight: 1 })
+      expect(detail?.marginTop).toBe(1)
+    } else {
+      expect(row).toMatchObject({ gap: 'sm', paddingLeft: 'md', paddingRight: 'sm' })
+      expect(detail?.marginTop).toBe('md')
+    }
+    await ui.unmount()
+  }
+})
+
+test('an engine older than 2.1.309 gets cells, a one-line field and the message whole under it', async ($, on) => {
+  world(on)
+  engine(on, '2.1.295')
+  await open($)
+  const ui = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...PANE })
+  expect((await ui.find({ key: 'reporow|/w/app' }))?.props).toMatchObject({ gap: 1, paddingLeft: 2, paddingRight: 1 })
+  expect((await ui.find({ key: 'msg|/w/app' }))?.props.rows).toBeUndefined()
+  await ui.input({ key: 'msg|/w/app', text: 'feat: show the whole commit message under the field', kind: 'change' })
+  expect(await ui.find({ key: 'msgwhole|/w/app' })).toBeDefined()
+  await ui.unmount()
+})
+
 test('pull and push show only with something to pull or push, and publish only without an upstream', async ($, on) => {
   const states: Record<string, string> = { '/w/ahead': status({ ahead: 2 }), '/w/behind': status({ behind: 3 }), '/w/even': status(), '/w/local': status({ upstream: false }) }
   const { calls } = world(on, { repos: ['ahead', 'behind', 'even', 'local'], status: cwd => states[cwd] ?? status() })
@@ -864,7 +954,8 @@ test('a file row: the type mark, the name pressed for the diff, the folder dim, 
   expect(name?.props).toMatchObject({ key: 'diff|/w/app|changes|src/app.ts', plain: true, label: 'app.ts' })
   expect(name?.props.dimColor).toBeUndefined()
   expect(leaves(app).find(l => l.text === 'src')?.props).toEqual({ dimColor: true, wrap: 'truncate-start' })
-  expect(leaves(app).find(l => l.text === 'M')?.props).toEqual({ color: '#d97706', bold: true })
+  // from 2.1.309 the engine also reads `bold` as `weight: 'semibold'`
+  expect(leaves(app).find(l => l.text === 'M')?.props).toMatchObject({ color: '#d97706', bold: true })
   // the actions wait for the pointer; the letter stays
   const actions = nodes(app).find(n => n.type === 'Box' && n.props.display === 'none' && n.props.position === undefined)
   expect(actions?.hover).toEqual({ display: 'flex' })
@@ -892,7 +983,7 @@ test('a group shows 50 files, and the rest behind its own button', async ($, on)
   expect(await rows()).toBe(50)
   const more = nodes(await ui.drawn()).find(n => n.props.key === 'morerow|/w/app|changes')
   expect(more?.props.paddingLeft).toBe(2)
-  expect((await ui.find({ key: 'more|/w/app|changes' }))?.props).toMatchObject({ label: '+ 3 files', plain: true, dimColor: true })
+  expect((await ui.find({ key: 'more|/w/app|changes' }))?.props).toMatchObject({ label: '+ 3 files' })
   await ui.press({ key: 'more|/w/app|changes' })
   expect(await rows()).toBe(53)
   await ui.unmount()
@@ -956,6 +1047,15 @@ test('a repository with 13 files, 2 staged and 1 conflict draws on every surface
 })
 
 const BAND = { component: 'AbovePrompt', props: { hasSurvey: false, isWorking: false, maxRows: 8, bodyColumns: 80, scroll: { offset: 0, bodyRows: 7 }, view: {} } } as const
+
+test('the pane asks for 60 columns whether /code-control or the row above the prompt opens it', async ($, on) => {
+  const { widths } = world(on)
+  await open($)
+  const band = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...BAND })
+  await band.press({ key: 'band|open' })
+  await band.unmount()
+  expect(widths).toEqual([60, 60])
+})
 
 // The session starting, and beneath the plugin what the engine draws in the band when no hook does.
 const start = async ($: { session: { start: (input: never) => Promise<unknown> } }, on: On) => {
@@ -1050,7 +1150,7 @@ test('the pane ⋯ turns the row above the prompt off and on, in the setting /co
   const menu = async () => (await pane.find({ key: 'settings|pane' }))?.props as { value: string; options: { value: string; label: string }[] } | undefined
   expect((await menu())?.value).toBe('more|0')
   expect((await menu())?.options).toEqual([
-    { value: 'more|0', label: '⋯' },
+    { value: 'more|0', label: 'Settings' },
     { value: 'row', label: 'Hide the row above the prompt' },
   ])
   const band = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...BAND })
@@ -1174,6 +1274,28 @@ test("a commit's hash links to its page on the remote's site; its subject opens 
   await toggleOnTake('commit|/w/app|C', { open: {} } as never, actions)?.()
   await toggleOnTake('in|/w/app|I', { open: {} } as never, actions)?.()
   expect(calls).toEqual(['commit:/w/app:C', 'in|/w/app|I:false'])
+})
+
+const HASH_LOG = `\x1eC\x1fCs\x1f\x1fAna\x1f1799990000\x1fHEAD -> main\x1fone\n`
+const hashOf = async ($: Parameters<TestBody>[0]) => {
+  await open($)
+  const ui = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...PANE })
+  await ui.press({ key: 'history|/w/app' })
+  const line = nodes(await ui.find({ key: 'histline|commit|/w/app|C' }))
+  await ui.unmount()
+  return { isLinked: line.some(n => n.type === 'Link'), props: leaves(line[0]).find(l => l.text === 'Cs')?.props }
+}
+
+test('from 2.1.309 a linked commit hash is drawn in the monospaced face', async ($, on) => {
+  world(on, { extra: line => (line.startsWith('log --topo-order') ? HASH_LOG : line === 'remote get-url origin' ? 'https://github.com/someone/app.git\n' : undefined) })
+  engine(on, '2.1.309')
+  expect(await hashOf($)).toMatchObject({ isLinked: true, props: { mono: true } })
+})
+
+test('from 2.1.309 a commit hash with no remote site is drawn dim in the monospaced face', async ($, on) => {
+  world(on, { extra: line => (line.startsWith('log --topo-order') ? HASH_LOG : undefined) })
+  engine(on, '2.1.309')
+  expect(await hashOf($)).toMatchObject({ isLinked: false, props: { dimColor: true, mono: true } })
 })
 
 test('the Graph shows its first 20 commits and the rest behind their own button', async ($, on) => {

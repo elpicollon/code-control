@@ -1,12 +1,15 @@
 import type {
-  BoxProps, ButtonProps, CodeProps, ElementConstructor, Elements, InputProps, LinkProps, RenderSurface, SelectProps, SvgProps, TextProps,
+  BoxProps, ButtonProps, CodeProps, ElementConstructor, Elements, InputProps, LinkProps, RenderSurface, SelectProps, Space, SvgProps, TextProps,
 } from 'claude-code'
 import type { Details, FileChange, RepoSnapshot, Stash, UiState } from '../../types'
 import type { PullMode, Side } from '../git/actions'
 import type { T } from '../i18n'
 
+// `isRich`: whether the engine takes the props Claude Code 2.1.309 added (spacing steps, Text `mono`,
+// Input `rows`); an older one refuses a whole tree that holds any of them, and the pane goes blank.
 export type Kit = {
   surface: RenderSurface
+  isRich: boolean
   Box: ElementConstructor<BoxProps>
   Text: ElementConstructor<TextProps>
   Button: ElementConstructor<ButtonProps>
@@ -19,10 +22,11 @@ export type Kit = {
 
 // The engine completes the element table for every surface (an omitted element draws a fragment),
 // so presence is decided by surface here, not by checking the table.
-export const toKit = (els: Elements[RenderSurface], surface: RenderSurface): Kit => {
+export const toKit = (els: Elements[RenderSurface], surface: RenderSurface, isRich: boolean): Kit => {
   const full = els as Elements['desktop']
   return {
     surface,
+    isRich,
     Box: els.Box,
     Text: els.Text,
     Button: els.Button,
@@ -32,6 +36,20 @@ export const toKit = (els: Elements[RenderSurface], surface: RenderSurface): Kit
     ...(surface === 'terminal' ? {} : { Svg: full.Svg }),
   }
 }
+
+// The engine's version as `$.session.version()` answers it (`2.1.309`, a `-dev` suffix or not).
+export const takesRichProps = (version: string): boolean => {
+  const [major = 0, minor = 0, patch = 0] = version.split(/[.-]/).map(Number)
+  return major !== 2 ? major > 2 : minor !== 1 ? minor > 1 : patch >= 309
+}
+
+// Space between and around elements in the surface's own steps, each the one the terminal draws as the
+// cells it stands for: across, 1 is `sm`, 2 `md`, 3 `lg`, 4 `xl`; down, 1 is `md`, 2 `xl`. Desktop and
+// the phones size a step their own way. A count with no step, or an older engine, keeps the cells.
+const ACROSS: Readonly<Record<number, Space>> = { 1: 'sm', 2: 'md', 3: 'lg', 4: 'xl' }
+const DOWN: Readonly<Record<number, Space>> = { 1: 'md', 2: 'xl' }
+export const across = (kit: Kit, cells: number): Space => (kit.isRich ? (ACROSS[cells] ?? cells) : cells)
+export const down = (kit: Kit, cells: number): Space => (kit.isRich ? (DOWN[cells] ?? cells) : cells)
 
 // `columns`: the cells the tree is laid out in (the site's bodyColumns); `isRowShown`: whether the row
 // above the prompt shows, as the settings hold it now; `picks`: how many picks the pane's menus have

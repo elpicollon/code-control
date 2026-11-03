@@ -8,10 +8,13 @@ import { localeArgv, parseLocale, pickLanguage, translator, type T } from './i18
 import { openArgv } from './paths'
 import { detached, fetchMinutes } from './schedule'
 import { BAND_PRESS, BandView } from './ui/band'
-import { toKit } from './ui/kit'
+import { takesRichProps, toKit } from './ui/kit'
 import { closeHeavy, focusedRepo, PaneView, ROW_SETTING, SETTINGS, toggleOnTake } from './ui/pane'
 
 const PANE = 'code-control'
+// The width the pane asks for when it opens docked beside the conversation; a width the person drags it
+// to wins.
+const PANE_COLUMNS = 60
 const STATUS_EVERY_MS = 30_000
 const WRITERS = new Set(['Edit', 'Write', 'NotebookEdit', 'Bash'])
 // The row above the prompt, unless the person turned it off: as the settings hold it now, since the
@@ -40,7 +43,7 @@ const repos = atom({ plugin: 'code-control', key: 'repos' } as const, [] as Repo
 const ui = atom({ plugin: 'code-control', key: 'ui' } as const, emptyUi())
 const details = atom({ plugin: 'code-control', key: 'details' } as const, emptyDetails())
 
-type App = { t: T; controller: Controller }
+type App = { t: T; controller: Controller; isRich: boolean }
 
 let app: App | null = null
 let building: Promise<App> | null = null
@@ -92,7 +95,8 @@ const build = async ($: EngineInterface, options: PluginOptions): Promise<App> =
     ui: { read: () => read($, ui), update: async fn => void (await update($, ui, fn)) },
     details: { read: () => read($, details), update: async fn => void (await update($, details, fn)) },
   })
-  return { t, controller }
+  const version = await $.session.version().catch(() => null)
+  return { t, controller, isRich: version !== null && takesRichProps(version.version) }
 }
 
 // One app per module load: a second /code-control must not make a second git queue or in-flight set.
@@ -154,7 +158,7 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: PANE }, async $ => {
     const current = await ensureApp($, options)
-    const placed = await $.ui.open({ id: PANE, title: current.t('title') })
+    const placed = await $.ui.open({ id: PANE, title: current.t('title'), columns: PANE_COLUMNS })
     if (!placed.isPlaced) return { text: current.t('notPlaced', { reason: placed.reason }) }
     // The answer waits for discovery (a new repository shows) and the timers only: the reads and the
     // fetch go on after it, since a repository's git calls may wait minutes behind a push or pull.
@@ -192,7 +196,7 @@ export const register: Register = (on, options) => {
     const answer = await next(e)
     if (e.origin.kind === 'person' && e.element === BAND_PRESS) {
       const current = await ensureApp($, options)
-      await $.ui.open({ id: PANE, title: current.t('title') })
+      await $.ui.open({ id: PANE, title: current.t('title'), columns: PANE_COLUMNS })
     }
     return answer
   })
@@ -228,7 +232,7 @@ export const register: Register = (on, options) => {
   on('ui.press', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.element === BAND_PRESS) {
       const current = await ensureApp($, options)
-      await $.ui.open({ id: PANE, title: current.t('title') })
+      await $.ui.open({ id: PANE, title: current.t('title'), columns: PANE_COLUMNS })
     }
     return next(e)
   })
@@ -236,7 +240,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || !(await showsRow($, options))) return next(e)
     const current = await ensureApp($, options)
-    const band = BandView(toKit($.ui.resolve(e), e.surface), {
+    const band = BandView(toKit($.ui.resolve(e), e.surface, current.isRich), {
       repos: await read($, repos),
       ui: await read($, ui),
       details: await read($, details),
@@ -262,7 +266,7 @@ export const register: Register = (on, options) => {
       isRowShown: await showsRow($, options),
       picks: menuPicks,
     }
-    const kit = toKit($.ui.resolve(e), e.surface)
+    const kit = toKit($.ui.resolve(e), e.surface, current.isRich)
     // A drawing that throws leaves the pane blank; the error shows in it instead.
     try {
       const fits = (tree: RenderElement): boolean => JSON.stringify(tree).length <= DRAW_BUDGET

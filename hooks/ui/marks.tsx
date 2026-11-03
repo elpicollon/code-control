@@ -2,7 +2,7 @@ import type { RenderChildren, RenderElement } from 'claude-code'
 import type { T } from '../i18n'
 import { basename } from '../paths'
 import { C, chevron, pill, PILL_HEIGHT, pillWidth, TYPE_WIDTH, typeIcon } from './icons'
-import { arrow, HOVER_ONLY, hoverOnly, type Kit } from './kit'
+import { across, arrow, HOVER_ONLY, hoverOnly, type Kit } from './kit'
 
 // The row backgrounds: the selected repository at rest and under the pointer, and any other row under
 // the pointer.
@@ -69,6 +69,14 @@ export const Act = (kit: Kit, key: string, glyph: string, tip: string, onPress: 
   return Tip(kit, key, tip, <Button key={key} plain dimColor label={glyph} onPress={() => onPress()} />, place)
 }
 
+// An action named in words (Keep mine, Apply, Load more): a Button with its chrome, so it shows as
+// something to press and not as the row's text. A plain one reads as text: the desktop drew it in the
+// text color even with a colored Text inside.
+export const TextAct = (kit: Kit, key: string, label: string, onPress: () => void) => {
+  const { Button } = kit
+  return <Button key={key} label={label} onPress={() => onPress()} />
+}
+
 // A label that draws nothing and is no whitespace, so no surface trims it away: the clear button over a
 // row. It stops short of the row's end, where counts and actions sit: a label longer than the row is cut
 // with an ellipsis the surface draws.
@@ -96,7 +104,7 @@ export const SectionHead = (kit: Kit, t: T, key: string, label: string, isOpen: 
   const { Box, Text, Button } = kit
   const overRow = hoverOnly(kit) && parts.columns !== undefined
   return (
-    <Box key={`head|${key}`} position="relative" flexDirection="row" alignItems="center" gap={1} paddingRight={1} hover={{ backgroundColor: ROW_HOVER }}>
+    <Box key={`head|${key}`} position="relative" flexDirection="row" alignItems="center" gap={across(kit, 1)} paddingRight={across(kit, 1)} hover={{ backgroundColor: ROW_HOVER }}>
       {Chevron(kit, t, isOpen)}
       {parts.icon ?? null}
       {overRow ? <Text>{label}</Text> : <Button key={key} plain label={label} onPress={() => onPress()} />}
@@ -104,7 +112,7 @@ export const SectionHead = (kit: Kit, t: T, key: string, label: string, isOpen: 
       <Box flexGrow={1} />
       {overRow ? RowPress(kit, key, parts.columns ?? 0, onPress) : null}
       {parts.actions === undefined || parts.actions === null ? null : (
-        <Box flexDirection="row" gap={1} {...(hoverOnly(kit) ? HOVER_ONLY : {})}>
+        <Box flexDirection="row" gap={across(kit, 1)} {...(hoverOnly(kit) ? HOVER_ONLY : {})}>
           {parts.actions}
         </Box>
       )}

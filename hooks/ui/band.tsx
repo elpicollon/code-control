@@ -1,5 +1,5 @@
 import { BLUE, branchIcon, GRAY, repoIcon } from './icons'
-import { hoverOnly, type Kit, type PaneModel } from './kit'
+import { across, hoverOnly, type Kit, type PaneModel } from './kit'
 import { Icon, ROW_HOVER, ROW_PX, RowPress } from './marks'
 import { isInSync, orderRepos, RepoState, selectedOf } from './pane'
 
@@ -17,10 +17,10 @@ export const BandView = (kit: Kit, model: PaneModel) => {
   const others = ordered.filter(r => r !== s && !isInSync(r)).length
   const overRow = hoverOnly(kit)
   return (
-    <Box key="band" position="relative" flexDirection="row" alignItems="center" gap={1} paddingX={1} hover={{ backgroundColor: ROW_HOVER }}>
+    <Box key="band" position="relative" flexDirection="row" alignItems="center" gap={across(kit, 1)} paddingX={across(kit, 1)} hover={{ backgroundColor: ROW_HOVER }}>
       {Icon(kit, repoIcon(BLUE), t('altRepo'), 16, ROW_PX)}
       <Box flexShrink={0}>{overRow ? <Text bold>{s.repo.label}</Text> : <Button key={BAND_PRESS} plain label={s.repo.label} onPress={() => undefined} />}</Box>
-      <Box flexDirection="row" alignItems="center" gap={1} flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
+      <Box flexDirection="row" alignItems="center" gap={across(kit, 1)} flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
         {Icon(kit, branchIcon(GRAY), t('altBranch'), 14)}
         <Text dimColor wrap="truncate-end">
           {s.branch.head ?? t('detached')}

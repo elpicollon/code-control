@@ -99,6 +99,23 @@ test('stash: delete asks twice', async ($, on) => {
   await ui.unmount()
 })
 
+test('a stash entry shows its message whole and, on the line under it, its actions always, as buttons with their outline', async ($, on) => {
+  world(on)
+  on('session.version', () => ({ value: { version: '2.1.309' } }))
+  await $.command.run({ command: 'code-control', args: '' } as never)
+  const ui = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...PANE })
+  await ui.press({ key: 'section|/w/app|stash' })
+  const row = await ui.find({ key: 'stashrow|/w/app|s0hash' })
+  expect(nodes(row).some(n => n.props.display === 'none')).toBe(false)
+  expect(leaves(row).find(l => l.text === 'wip')?.props.wrap).toBe('wrap')
+  // space under its actions, before the next entry or block
+  expect(row?.props.marginBottom).toBe('md')
+  for (const action of ['apply', 'pop', 'stashdiff', 'drop']) {
+    expect((await ui.find({ key: `${action}|/w/app|s0hash` }))?.props.plain).toBeUndefined()
+  }
+  await ui.unmount()
+})
+
 test('a commit both incoming and in history keeps distinct file-row keys', async ($, on) => {
   world(on, header(['I', 'Is', 'M', 'Caio', '1799999000', 'origin/main', 'incoming change']) + HISTORY)
   await $.command.run({ command: 'code-control', args: '' } as never)

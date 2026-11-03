@@ -170,7 +170,7 @@ Change them with `/config` in a Claude Code terminal. The status row can also be
 
 ## Good to know
 
-- **The message field is narrow** in the desktop app: Claude Code draws a mod's text field at a fixed width. A message longer than the field shows whole right below it.
+- **The message field is narrow** in the desktop app: Claude Code draws a mod's text field at a fixed width. From Claude Code 2.1.309 it stands three lines tall and holds a body (a new line is typed as in the prompt box); before that it is one line, and a message longer than the field shows whole right below it.
 - **Very full panes draw lighter.** Claude Code won't draw a pane past a certain size. Near it, code-control closes open diffs and shows fewer commits and files, and tells you, instead of going blank.
 - **The first click on a pane you weren't using** only gives it the keyboard focus. Rows, group titles and commit subjects act on that click anyway; other buttons may need a second one.
 - **On a phone** the pane is read-only: the mobile app draws no text fields yet.

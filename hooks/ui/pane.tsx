@@ -5,7 +5,7 @@ import { BranchExtras, BranchSelect } from './branch'
 import { ConflictBanner } from './conflict'
 import { GroupView } from './files'
 import { BLUE, branchIcon, C, GRAY, repoIcon } from './icons'
-import { canAct, hoverOnly, menuRest, type Actions, type Kit, type PaneModel } from './kit'
+import { across, canAct, down, hoverOnly, menuRest, type Actions, type Kit, type PaneModel } from './kit'
 import { HistoryView, IncomingView } from './log'
 import { Act, Chevron, Icon, Pill, REPO_ROW_PX, ROW_HOVER, RowPress, SectionHead, SELECTED, SELECTED_HOVER, Tip } from './marks'
 import { StashView } from './stash'
@@ -46,7 +46,7 @@ const needsAttention = (s: RepoSnapshot, ui: UiState): boolean =>
 const spaced = (kit: Kit, block: RenderElement | null) => {
   const { Box } = kit
   return block === null ? null : (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginTop={down(kit, 1)}>
       {block}
     </Box>
   )
@@ -68,7 +68,7 @@ export const RepoState = (kit: Kit, model: PaneModel, s: RepoSnapshot, hint = tr
     ahead > 0 ? { label: `↑${ahead}`, color: C.green, says: t('stateAhead', { n: ahead }), dot: false } : null,
   ].filter(p => p !== null)
   return (
-    <Box flexDirection="row" alignItems="center" gap={1} flexShrink={0}>
+    <Box flexDirection="row" alignItems="center" gap={across(kit, 1)} flexShrink={0}>
       {ui.busy[repo] === undefined ? null : <Text dimColor>…</Text>}
       {parts.length === 0
         ? null
@@ -78,7 +78,7 @@ export const RepoState = (kit: Kit, model: PaneModel, s: RepoSnapshot, hint = tr
               kit,
               `state|${repo}`,
               parts.map(p => p.says).join(' · '),
-              <Box flexDirection="row" alignItems="center" gap={1}>
+              <Box flexDirection="row" alignItems="center" gap={across(kit, 1)}>
                 {parts.map(p => Pill(kit, p.label, p.color, p.says, p.dot))}
               </Box>,
             )}
@@ -140,9 +140,9 @@ const RepoRow = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapshot, 
       position="relative"
       flexDirection="row"
       alignItems="center"
-      gap={1}
-      paddingLeft={2}
-      paddingRight={1}
+      gap={across(kit, 1)}
+      paddingLeft={across(kit, 2)}
+      paddingRight={across(kit, 1)}
       {...(isSelected ? { backgroundColor: SELECTED } : {})}
       hover={{ backgroundColor: isSelected ? SELECTED_HOVER : ROW_HOVER }}
     >
@@ -150,7 +150,7 @@ const RepoRow = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapshot, 
       <Box flexShrink={0}>
         {isSelected || overRow ? <Text bold={isSelected}>{s.repo.label}</Text> : <Button key={`${SELECT}${repo}`} plain label={s.repo.label} onPress={select} />}
       </Box>
-      <Box flexDirection="row" alignItems="center" gap={1} flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
+      <Box flexDirection="row" alignItems="center" gap={across(kit, 1)} flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
         {Icon(kit, branchIcon(GRAY), t('altBranch'), 14)}
         <Text dimColor wrap="truncate-end">
           {s.branch.head ?? t('detached')}
@@ -166,12 +166,13 @@ const RepoRow = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapshot, 
 export const SETTINGS = 'settings|pane'
 export const ROW_SETTING = 'row'
 
-// The last fetch as a short time, ↻, and ⋯: the pane's settings, the row above the prompt for now.
+// The last fetch as a short time, ↻, and Settings: the pane's settings, the row above the prompt for now.
 const FetchState = (kit: Kit, model: PaneModel, actions: Actions) => {
   const { Box, Text, Select } = kit
   const { t, ui } = model
+  const rest = { ...menuRest(model), label: t('settings') }
   return (
-    <Box flexDirection="row" alignItems="center" gap={1} flexShrink={0}>
+    <Box flexDirection="row" alignItems="center" gap={across(kit, 1)} flexShrink={0}>
       <Text dimColor wrap="truncate-end">
         {ui.lastFetchAt === null ? t('neverFetched') : ago(t, ui.lastFetchAt / 1000, model.now)}
       </Text>
@@ -184,9 +185,9 @@ const FetchState = (kit: Kit, model: PaneModel, actions: Actions) => {
             t('tipSettings'),
             <Select
               key={SETTINGS}
-              value={menuRest(model).value}
+              value={rest.value}
               options={[
-                menuRest(model),
+                rest,
                 { value: ROW_SETTING, label: model.isRowShown ? t('hideRow') : t('showRow') },
               ]}
               onSelect={() => undefined}
@@ -215,7 +216,7 @@ const RepoList = (kit: Kit, model: PaneModel, actions: Actions, ordered: readonl
       })}
       {isOpen ? shown.map(s => RepoRow(kit, model, actions, s, s === selected)) : null}
       {isOpen && hidden.length > 0 ? (
-        <Box key="morerepos-row" position="relative" flexDirection="row" alignItems="center" gap={1} paddingLeft={2} hover={{ backgroundColor: ROW_HOVER }}>
+        <Box key="morerepos-row" position="relative" flexDirection="row" alignItems="center" gap={across(kit, 1)} paddingLeft={across(kit, 2)} hover={{ backgroundColor: ROW_HOVER }}>
           {Chevron(kit, t, showAll, REPO_ROW_PX)}
           {hoverOnly(kit) ? (
             <Text dimColor>{moreLabel}</Text>
@@ -241,7 +242,7 @@ const SyncButtons = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapsh
   if (behind === 0 && ahead === 0 && !canPublish) return null
   const compact = hoverOnly(kit)
   return (
-    <Box flexDirection="row" alignItems="center" gap={1} flexShrink={0}>
+    <Box flexDirection="row" alignItems="center" gap={across(kit, 1)} flexShrink={0}>
       {behind > 0
         ? Tip(kit, `pull|${repo}`, counted(t, 'tipPull1', 'tipPull', behind), <Button key={`pull|${repo}`} label={compact ? `↓${behind}` : t('pullN', { n: behind })} onPress={() => void actions.pull(repo, 'ff')} />)
         : null}
@@ -261,12 +262,12 @@ const DetailHeader = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnaps
   const repo = s.repo.path
   return (
     <Box flexDirection="column">
-      <Box flexDirection="row" alignItems="center" gap={1}>
+      <Box flexDirection="row" alignItems="center" gap={across(kit, 1)}>
         {Icon(kit, repoIcon(BLUE), t('altRepo'), 16)}
         <Box flexShrink={0}>
           <Text bold>{s.repo.label}</Text>
         </Box>
-        <Box flexDirection="row" alignItems="center" gap={1} flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
+        <Box flexDirection="row" alignItems="center" gap={across(kit, 1)} flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
           {Icon(kit, branchIcon(GRAY), t('altBranch'), 14)}
           {BranchSelect(kit, model, actions, s)}
         </Box>
@@ -274,14 +275,14 @@ const DetailHeader = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnaps
         {SyncButtons(kit, model, actions, s)}
       </Box>
       {canAct(kit) && ui.diverged[repo] === true ? (
-        <Box flexDirection="row" alignItems="center" gap={1}>
+        <Box flexDirection="row" alignItems="center" gap={across(kit, 1)}>
           <Text color="warning">{t('diverged')}</Text>
           <Button key={`merge|${repo}`} label={t('merge')} onPress={() => void actions.pull(repo, 'merge')} />
           <Button key={`rebase|${repo}`} label={t('rebase')} onPress={() => void actions.pull(repo, 'rebase')} />
         </Box>
       ) : null}
       {ui.errors[repo] === undefined ? null : (
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection="row" gap={across(kit, 1)}>
           <Text color="error" wrap="truncate-end">
             {ui.errors[repo]}
           </Text>
@@ -301,10 +302,14 @@ const DetailHeader = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnaps
 // What the desktop's message field shows at once: the app draws it at a fixed width (an Input takes
 // no size), about this many characters.
 const FIELD_CHARS = 22
+// How many lines the message field stands where the engine takes `rows`: a subject, the blank line and
+// the body's first; a longer message scrolls within it.
+const MESSAGE_ROWS = 3
 
-// The message field, then ✦, Commit and ⋯ packed on one row; ⋯ is a menu of the rarer actions. It
-// stays on a clean repository, so amend and undo are there after a commit; the phone, with no field,
-// has none. A message longer than the field shows whole under it, where the field cannot.
+// The message field, then ✦, Commit and ⋯; ⋯ is a menu of the rarer actions. It stays on a clean
+// repository, so amend and undo are there after a commit; the phone, with no field, has none. Where the
+// field stands several lines it takes the pane's width and the buttons go under it; where it is one
+// line they pack beside it, and a message longer than it shows whole under them.
 const CommitRow = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapshot) => {
   const { Box, Text, Button, Input, Select } = kit
   if (Input === undefined) return null
@@ -320,51 +325,70 @@ const CommitRow = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapshot
     undo: () => void actions.undo(repo),
     stash: () => void actions.stashSave(repo),
   }
+  // On a row of their own under the field, ✦ and ⋯ also say what they are in words.
+  const rest = kit.isRich ? { ...menuRest(model), label: t('moreActions') } : menuRest(model)
+  const field = (
+    <Input
+      key={`msg|${repo}`}
+      placeholder={t('messagePlaceholder')}
+      value={draft}
+      {...(kit.isRich ? { rows: MESSAGE_ROWS } : {})}
+      onInput={value => void actions.setDraft(repo, value)}
+      onSubmit={() => void actions.commit(repo)}
+    />
+  )
+  const buttons = [
+    Tip(
+      kit,
+      `gen|${repo}`,
+      t('tipGenerate'),
+      <Button key={`gen|${repo}`} label={ui.busy[repo] === 'generate' ? t('generating') : kit.isRich ? t('generate') : '✦'} onPress={() => void actions.generate(repo)} />,
+      'upRight',
+    ),
+    Tip(
+      kit,
+      `commit|${repo}`,
+      commitTip,
+      <Button key={`commit|${repo}`} label={`✓ ${t('commit')}`} {...(s.operation === null ? { variant: 'primary' as const } : {})} onPress={() => void actions.commit(repo)} />,
+      'upRight',
+    ),
+    Select === undefined
+      ? null
+      : Tip(
+          kit,
+          `moreactions|${repo}`,
+          t('tipMore'),
+          <Select
+            key={`moreactions|${repo}`}
+            value={rest.value}
+            options={[
+              rest,
+              { value: 'amend', label: t('amend') },
+              { value: 'undo', label: t('undo') },
+              { value: 'stash', label: t('stashSave') },
+            ]}
+            onSelect={value => more[value]?.()}
+          />,
+        ),
+  ]
+  if (kit.isRich) {
+    return (
+      <Box flexDirection="column" rowGap={down(kit, 1)}>
+        {field}
+        <Box flexDirection="row" alignItems="center" gap={across(kit, 1)}>
+          {buttons}
+        </Box>
+      </Box>
+    )
+  }
   return (
     <Box flexDirection="column">
-      <Box flexDirection="row" alignItems="center" gap={1}>
-        <Input
-          key={`msg|${repo}`}
-          placeholder={t('messagePlaceholder')}
-          value={draft}
-          onInput={value => void actions.setDraft(repo, value)}
-          onSubmit={() => void actions.commit(repo)}
-        />
-        {Tip(
-          kit,
-          `gen|${repo}`,
-          t('tipGenerate'),
-          <Button key={`gen|${repo}`} label={ui.busy[repo] === 'generate' ? t('generating') : '✦'} onPress={() => void actions.generate(repo)} />,
-          'upRight',
-        )}
-        {Tip(
-          kit,
-          `commit|${repo}`,
-          commitTip,
-          <Button key={`commit|${repo}`} label={`✓ ${t('commit')}`} {...(s.operation === null ? { variant: 'primary' as const } : {})} onPress={() => void actions.commit(repo)} />,
-          'upRight',
-        )}
-        {Select === undefined
-          ? null
-          : Tip(
-              kit,
-              `moreactions|${repo}`,
-              t('tipMore'),
-              <Select
-                key={`moreactions|${repo}`}
-                value={menuRest(model).value}
-                options={[
-                  menuRest(model),
-                  { value: 'amend', label: t('amend') },
-                  { value: 'undo', label: t('undo') },
-                  { value: 'stash', label: t('stashSave') },
-                ]}
-                onSelect={value => more[value]?.()}
-              />,
-            )}
+      <Box flexDirection="row" alignItems="center" gap={across(kit, 1)}>
+        {field}
+        {buttons}
       </Box>
       {hoverOnly(kit) && draft.length > FIELD_CHARS ? (
-        <Box key={`msgwhole|${repo}`} marginTop={1} paddingLeft={1}>
+        <Box key={`msgwhole|${repo}`} marginTop={down(kit, 1)} paddingLeft={across(kit, 1)}>
           <Text dimColor wrap="wrap">
             {draft}
           </Text>
@@ -379,7 +403,7 @@ const stack = (kit: Kit, blocks: readonly (RenderElement | null)[]) => {
   const { Box } = kit
   const present = blocks.filter(b => b !== null)
   return present.length === 0 ? null : (
-    <Box flexDirection="column" marginTop={1}>
+    <Box flexDirection="column" marginTop={down(kit, 1)}>
       {present}
     </Box>
   )
@@ -390,7 +414,7 @@ const stack = (kit: Kit, blocks: readonly (RenderElement | null)[]) => {
 const Detail = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSnapshot) => {
   const { Box } = kit
   return (
-    <Box key="detail" flexDirection="column" marginTop={1}>
+    <Box key="detail" flexDirection="column" marginTop={down(kit, 1)}>
       {DetailHeader(kit, model, actions, s)}
       {spaced(kit, ConflictBanner(kit, model, actions, s))}
       {spaced(kit, CommitRow(kit, model, actions, s))}
@@ -408,7 +432,7 @@ export const PaneView = (kit: Kit, model: PaneModel, actions: Actions) => {
   return (
     <Box flexDirection="column">
       {ordered.length === 0 ? (
-        <Box flexDirection="row" alignItems="center" gap={1}>
+        <Box flexDirection="row" alignItems="center" gap={across(kit, 1)}>
           <Text dimColor>{t('noRepos')}</Text>
           <Box flexGrow={1} />
           {FetchState(kit, model, actions)}
