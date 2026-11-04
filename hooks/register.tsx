@@ -135,9 +135,6 @@ const startTimers = ($: EngineInterface, options: PluginOptions): void => {
 const DRAW_BUDGET = 240_000
 const FEW_FILES = 15
 const FEW_COMMITS = 10
-// The pane draws often: the notice shows once, again only after a minute without drawing too much.
-const TRIM_NOTICE_MS = 60_000
-let trimmedAt = 0
 
 export const register: Register = (on, options) => {
   // The row above the prompt shows the repositories from the start, so with it they are read, and kept
@@ -272,15 +269,15 @@ export const register: Register = (on, options) => {
       const fits = (tree: RenderElement): boolean => JSON.stringify(tree).length <= DRAW_BUDGET
       let tree = PaneView(kit, model, current.controller.actions)
       if (fits(tree)) return tree
-      // Past what the surface draws, the pane would stay blank: draw it lighter, step by step, and say so
-      // (a drawing reads state and writes none). First without the open diffs, then with fewer commits
-      // and files, the Graph still open; only then with the heavy blocks closed.
-      const now = await $.clock.now()
-      if (now - trimmedAt > TRIM_NOTICE_MS) $.ui.toast(current.t('trimmed'))
-      trimmedAt = now
-      const noDiffs = { ...model, details: { ...model.details, diffs: {} } }
+      // Past what the surface draws, the pane would stay blank: draw it lighter, step by step, each part
+      // left out saying so in its place (a drawing reads state and writes none). First the open diffs as a
+      // line each, then fewer commits and files, the Graph still open; only then with the heavy blocks
+      // closed.
+      const noDiffs = { ...model, hidesDiffs: true }
       const shorter = { ...noDiffs, listCap: FEW_COMMITS, fileCap: FEW_FILES }
-      for (const lighter of [noDiffs, shorter, { ...shorter, ui: closeHeavy(model.ui) }]) {
+      const closed = closeHeavy(model.ui)
+      const closedToFit = new Set(Object.keys(model.ui.open).filter(key => model.ui.open[key] === true && closed.open[key] !== true))
+      for (const lighter of [noDiffs, shorter, { ...shorter, ui: closed, closedToFit }]) {
         tree = PaneView(kit, lighter, current.controller.actions)
         if (fits(tree)) return tree
       }

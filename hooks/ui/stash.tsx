@@ -3,7 +3,7 @@ import { ago } from '../i18n'
 import { DiffBlock } from './diff'
 import { across, canAct, confirming, down, type Actions, type Kit, type PaneModel } from './kit'
 import { GRAY, stashIcon } from './icons'
-import { Icon, Pill, SectionHead, TextAct } from './marks'
+import { FitNote, Icon, Pill, SectionHead, TextAct } from './marks'
 
 // Collapsed to its title until opened, with the number of entries. An entry is its ref, its message
 // whole and its age, with its actions always shown on the line under it and space below them.
@@ -47,11 +47,13 @@ export const StashView = (kit: Kit, model: PaneModel, actions: Actions, s: RepoS
                   {isConfirming ? <Text color="error">{t('confirm')}</Text> : null}
                   {canAct(kit) ? TextAct(kit, `drop|${id}`, t('drop'), () => void actions.stashDrop(repo, stash)) : null}
                 </Box>
-                {content === undefined ? null : DiffBlock(kit, t, content, stash.ref)}
+                {content === undefined ? null : DiffBlock(kit, model, content, stash.ref)}
               </Box>
             )
           })}
         </Box>
+      ) : model.closedToFit?.has(sectionKey) === true ? (
+        <Box paddingLeft={across(kit, 2)}>{FitNote(kit, t('cutBlock'))}</Box>
       ) : null}
     </Box>
   )

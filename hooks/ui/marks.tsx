@@ -77,6 +77,17 @@ export const TextAct = (kit: Kit, key: string, label: string, onPress: () => voi
   return <Button key={key} label={label} onPress={() => onPress()} />
 }
 
+// Where a drawing too big for the surface left something out: a dim line, in its place, saying what and
+// how to bring it back.
+export const FitNote = (kit: Kit, text: string) => {
+  const { Text } = kit
+  return (
+    <Text dimColor wrap="wrap">
+      {text}
+    </Text>
+  )
+}
+
 // A label that draws nothing and is no whitespace, so no surface trims it away: the clear button over a
 // row. It stops short of the row's end, where counts and actions sit: a label longer than the row is cut
 // with an ellipsis the surface draws.

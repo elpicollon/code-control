@@ -1327,7 +1327,33 @@ test('a drawing past what the surface draws closes the heavy blocks and shows fe
   expect(drawn.length).toBeLessThanOrEqual(200_000)
   const rows = (await ui.findAll({ type: 'Box' })).filter(b => String(b.key).startsWith('row|/w/app|changes|')).length
   expect(rows).toBe(15)
-  expect((await ui.find({ key: 'more|/w/app|changes' }))?.props.label).toBe('+ 45 files')
+  // in place of + N files, which could show no more here: how many show, and how to see them all
+  expect(await ui.find({ key: 'more|/w/app|changes' })).toBeUndefined()
+  expect(shown(await ui.find({ key: 'morerow|/w/app|changes' }))).toEqual(['Showing 15 of 60 · close open items to see them all'])
+  await ui.unmount()
+})
+
+test('an open diff past what the surface draws shows as a line saying it is hidden', async ($, on) => {
+  const { calls } = world(on, { extra: line => (line === 'diff -- src/app.ts' ? `+${'x'.repeat(300_000)}\n` : undefined) })
+  await open($)
+  const ui = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...PANE })
+  await ui.press({ key: 'diff|/w/app|changes|src/app.ts' })
+  expect(calls).toContain('diff -- src/app.ts')
+  expect(JSON.stringify(await ui.drawn()).length).toBeLessThanOrEqual(240_000)
+  expect(shown(await ui.find({ key: 'row|/w/app|changes|src/app.ts' }))).toContain('Diff hidden to fit the pane · close other open items to see it')
+  await ui.unmount()
+})
+
+test('a block too big even shortened closes, with a line under its title saying so', async ($, on) => {
+  const subject = 'y'.repeat(30_000)
+  const log = Array.from({ length: 50 }, (_, i) => `\x1eh${i}\x1fs${i}\x1f${i < 49 ? `h${i + 1}` : ''}\x1fAna\x1f${1799990000 - i}\x1f\x1f${subject}\n`).join('')
+  world(on, { extra: line => (line.startsWith('log --topo-order') ? log : undefined) })
+  await open($)
+  const ui = await $.ui.mount({ plugin: 'code-control', surface: 'desktop', ...PANE })
+  await ui.press({ key: 'history|/w/app' })
+  expect(JSON.stringify(await ui.drawn()).length).toBeLessThanOrEqual(240_000)
+  expect(shown(await ui.find({ key: 'head|history|/w/app' }))[0]).toBe('[Collapsed]')
+  expect(await ui.find({ type: 'Text', text: 'Closed to fit the pane · close other open items to open it' })).toBeDefined()
   await ui.unmount()
 })
 

@@ -1,9 +1,12 @@
 import type { DiffContent } from '../../types'
-import type { T } from '../i18n'
-import { across, type Kit } from './kit'
+import { across, type Kit, type PaneModel } from './kit'
+import { FitNote } from './marks'
 
-export const DiffBlock = (kit: Kit, t: T, content: DiffContent, path: string) => {
+// An open diff; a line saying it is hidden where the drawing must stay small.
+export const DiffBlock = (kit: Kit, model: PaneModel, content: DiffContent, path: string) => {
   const { Box, Text, Code } = kit
+  const { t } = model
+  if (model.hidesDiffs === true) return <Box marginLeft={across(kit, 2)}>{FitNote(kit, t('cutDiff'))}</Box>
   if (content.kind === 'binary') return <Text dimColor>{t('binary')}</Text>
   return (
     <Box flexDirection="column" marginLeft={across(kit, 2)}>

@@ -68,7 +68,7 @@ export const ConflictRow = (kit: Kit, model: PaneModel, actions: Actions, s: Rep
           </Box>
         ) : null}
       </Box>
-      {excerpt === undefined ? null : DiffBlock(kit, t, excerpt, f.path)}
+      {excerpt === undefined ? null : DiffBlock(kit, model, excerpt, f.path)}
     </Box>
   )
 }

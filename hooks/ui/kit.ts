@@ -63,10 +63,13 @@ export type PaneModel = {
   columns: number
   isRowShown: boolean
   picks: number
-  // when a drawing must stay small: how many files a group shows before its "+ N files", and how many
-  // commits the Graph and Incoming show, open "+ N" buttons or not
+  // when a drawing must stay small: how many files a group shows and how many commits the Graph and
+  // Incoming show, open "+ N" buttons or not, a line saying how many in the button's place; each open
+  // diff as a line saying it is hidden; and the blocks it closed, each with a line under its title
   fileCap?: number
   listCap?: number
+  hidesDiffs?: boolean
+  closedToFit?: ReadonlySet<string>
 }
 
 // A menu's resting option: ⋯, under a value that changes with every pick. A Select keeps showing the

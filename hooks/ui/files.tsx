@@ -5,7 +5,7 @@ import { ConflictRow } from './conflict'
 import { DiffBlock } from './diff'
 import { C, GRAY } from './icons'
 import { across, canAct, confirming, HOVER_ONLY, hoverOnly, type Actions, type Kit, type PaneModel } from './kit'
-import { Act, FileIcon, Pill, ROW_HOVER, SectionHead, TextAct, Tip } from './marks'
+import { Act, FileIcon, FitNote, Pill, ROW_HOVER, SectionHead, TextAct, Tip } from './marks'
 
 export const SHOWN = 50
 
@@ -69,7 +69,7 @@ export const FileRow = (kit: Kit, model: PaneModel, actions: Actions, s: RepoSna
         </Box>
         {StatusLetter(kit, model, `status|${id}`, f.status)}
       </Box>
-      {content === undefined ? null : DiffBlock(kit, t, content, f.path)}
+      {content === undefined ? null : DiffBlock(kit, model, content, f.path)}
     </Box>
   )
 }
@@ -102,7 +102,9 @@ export const GroupView = (kit: Kit, model: PaneModel, actions: Actions, s: RepoS
       {isOpen ? shown.map(f => (group === 'conflicts' ? ConflictRow(kit, model, actions, s, f) : FileRow(kit, model, actions, s, f))) : null}
       {isOpen && shown.length < files.length ? (
         <Box key={`morerow|${repo}|${group}`} paddingLeft={across(kit, 2)} hover={{ backgroundColor: ROW_HOVER }}>
-          {TextAct(kit, moreKey, t('moreFiles', { n: files.length - shown.length }), () => void actions.toggle(moreKey, false))}
+          {model.fileCap === undefined
+            ? TextAct(kit, moreKey, t('moreFiles', { n: files.length - shown.length }), () => void actions.toggle(moreKey, false))
+            : FitNote(kit, t('cutList', { shown: shown.length, total: files.length }))}
         </Box>
       ) : null}
     </Box>

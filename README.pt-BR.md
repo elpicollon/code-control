@@ -171,7 +171,7 @@ Mude pelo `/config` num terminal do Claude Code. A linha de status também liga 
 ## Bom saber
 
 - **O campo de mensagem é estreito** no app desktop: o Claude Code desenha o campo de texto de um mod com largura fixa. A partir do Claude Code 2.1.309 ele tem três linhas e aceita corpo (a nova linha se digita como no campo do prompt); antes disso tem uma linha, e uma mensagem maior que o campo aparece inteira logo abaixo dele.
-- **Painéis muito cheios ficam mais leves.** O Claude Code não desenha um painel acima de certo tamanho. Perto disso, o code-control fecha os diffs abertos e mostra menos commits e arquivos, e avisa, em vez de ficar em branco.
+- **Painéis muito cheios ficam mais leves.** O Claude Code não desenha um painel acima de certo tamanho. Perto disso, o code-control fecha os diffs abertos e mostra menos commits e arquivos em vez de ficar em branco, com uma linha no lugar de cada coisa que ficou de fora dizendo como trazê-la de volta.
 - **O primeiro clique num painel que você não estava usando** só dá o foco a ele. Linhas, títulos de grupo e títulos de commit agem nesse clique mesmo assim; os outros botões podem precisar de um segundo.
 - **No celular** o painel é só leitura: o app mobile ainda não desenha campos de texto.
 

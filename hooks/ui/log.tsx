@@ -8,7 +8,7 @@ import { DiffBlock } from './diff'
 import { ROW, STEP, rowSvg, rowText } from './graph'
 import { across, type Actions, type Kit, type PaneModel } from './kit'
 import { GRAY, graphIcon, incomingIcon } from './icons'
-import { Icon, Pill, ROW_HOVER, SectionHead, TextAct } from './marks'
+import { FitNote, Icon, Pill, ROW_HOVER, SectionHead, TextAct } from './marks'
 
 // One line a file: the status, the name to press for its diff, the folder dim and cut at its start.
 const FileList = (kit: Kit, model: PaneModel, actions: Actions, scope: 'in' | 'hist', repo: string, hash: string, files: readonly CommitFile[]) => {
@@ -27,7 +27,7 @@ const FileList = (kit: Kit, model: PaneModel, actions: Actions, scope: 'in' | 'h
                 {dirname(f.path)}
               </Text>
             </Box>
-            {content === undefined ? null : DiffBlock(kit, model.t, content, f.path)}
+            {content === undefined ? null : DiffBlock(kit, model, content, f.path)}
           </Box>
         )
       })}
@@ -112,9 +112,15 @@ export const IncomingView = (kit: Kit, model: PaneModel, actions: Actions, s: Re
               </Box>
             )
           })}
-          {loaded > INCOMING_SHOWN ? TextAct(kit, moreKey, t('moreCommits', { n: loaded - INCOMING_SHOWN }), () => void actions.toggle(moreKey, expanded)) : null}
-          {expanded && s.branch.behind > loaded ? <Text dimColor>{t('showingOf', { shown: loaded, total: s.branch.behind })}</Text> : null}
+          {model.listCap !== undefined && shown.length < loaded
+            ? FitNote(kit, t('cutList', { shown: shown.length, total: loaded }))
+            : loaded > INCOMING_SHOWN
+              ? TextAct(kit, moreKey, t('moreCommits', { n: loaded - INCOMING_SHOWN }), () => void actions.toggle(moreKey, expanded))
+              : null}
+          {expanded && model.listCap === undefined && s.branch.behind > loaded ? <Text dimColor>{t('showingOf', { shown: loaded, total: s.branch.behind })}</Text> : null}
         </Box>
+      ) : model.closedToFit?.has(sectionKey) === true ? (
+        <Box paddingLeft={across(kit, 2)}>{FitNote(kit, t('cutBlock'))}</Box>
       ) : null}
     </Box>
   )
@@ -167,11 +173,17 @@ export const HistoryView = (kit: Kit, model: PaneModel, actions: Actions, s: Rep
             )
           })}
           {shownRows.length < rows.length ? (
-            TextAct(kit, moreKey, t('moreCommits', { n: rows.length - shownRows.length }), () => void actions.toggle(moreKey, expanded))
+            model.listCap === undefined ? (
+              TextAct(kit, moreKey, t('moreCommits', { n: rows.length - shownRows.length }), () => void actions.toggle(moreKey, expanded))
+            ) : (
+              FitNote(kit, t('cutList', { shown: shownRows.length, total: rows.length }))
+            )
           ) : commits.length > 0 && commits.length % PAGE === 0 ? (
             TextAct(kit, `loadmore|${repo}`, t('loadMore'), () => void actions.loadMore(repo))
           ) : null}
         </Box>
+      ) : model.closedToFit?.has(key) === true ? (
+        <Box paddingLeft={across(kit, 2)}>{FitNote(kit, t('cutBlock'))}</Box>
       ) : null}
     </Box>
   )
