@@ -152,6 +152,10 @@ export const createController = (deps: Deps) => {
     if (commits.length > 0) await deps.details.update(d => ({ ...d, history: { ...d.history, [path]: commits } }))
   }
 
+  // The message a read of each repository left: the next read that works takes it away, as it was only
+  // the read's. An action's own message stays until the person closes it or acts again.
+  const readErrors = new Map<string, string>()
+
   const refreshRepo = async (path: string): Promise<void> => {
     const current = await snapshot(path)
     if (current === undefined) return
@@ -160,7 +164,13 @@ export const createController = (deps: Deps) => {
       await deps.repos.update(list => list.map(s => (s.repo.path === path ? next : s)))
       await prune(path, next)
       await reload(path, next)
+      const left = readErrors.get(path)
+      if (left !== undefined) {
+        readErrors.delete(path)
+        await setUi(ui => (ui.errors[path] === left ? { ...ui, errors: without(ui.errors, path) } : ui))
+      }
     } catch (error) {
+      readErrors.set(path, describe(error))
       await setError(path, error)
     }
   }

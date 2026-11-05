@@ -298,6 +298,20 @@ test('a commit whose files fail to load stays closed and reports the error', asy
   expect(ui.get().errors['/w/app']).toContain('bad object')
 })
 
+test('a read that fails shows its message until a later read works; an action message stays', async () => {
+  let isFailing = true
+  const { controller, actions, ui } = setup(args => (isFailing && args[0] === 'status' ? { exitCode: 128, stderr: 'fatal: index file corrupt' } : undefined))
+  await controller.refreshAll(true)
+  expect(ui.get().errors['/w/app']).toContain('index file corrupt')
+  isFailing = false
+  await controller.refreshRepo('/w/app')
+  expect(ui.get().errors['/w/app']).toBeUndefined()
+  await actions.commit('/w/app')
+  expect(ui.get().errors['/w/app']).toBe('Write the commit message.')
+  await controller.refreshRepo('/w/app')
+  expect(ui.get().errors['/w/app']).toBe('Write the commit message.')
+})
+
 test('commit checks conflicts and staged changes fresh, not from the snapshot', async () => {
   let unmerged = ''
   let stagedExit = 0
